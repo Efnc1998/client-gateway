@@ -1,28 +1,28 @@
-import { envs, PRODUCT_SERVICE } from '@/config';
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ProductsController } from './products.controller';
+import { envs, PAYMENT_SERVICE } from '@/config';
+import { PaymentsController } from './payments.controller';
 import { AuthModule } from '@/auth/auth.module';
 
 @Module({
-  controllers: [ProductsController],
+  controllers: [PaymentsController],
   imports: [
     AuthModule,
     ClientsModule.register([
       {
-        name: PRODUCT_SERVICE,
+        name: PAYMENT_SERVICE,
         transport: Transport.KAFKA,
         options: {
           client: {
-            clientId: 'products-client',
+            clientId: 'payments-client',
             brokers: envs.kafkaBrokers,
           },
           consumer: {
-            groupId: 'gateway-products-consumer',
+            groupId: 'gateway-payments-consumer',
           },
         },
       },
     ]),
   ],
 })
-export class ProductsModule {}
+export class PaymentsModule {}

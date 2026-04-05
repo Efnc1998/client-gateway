@@ -3,10 +3,21 @@ import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { envs } from './config';
 import { RpcCustomExceptionFilter } from './shared/exceptions/rpc-custom-exception.filter';
+import helmet from 'helmet';
 
 async function bootstrap() {
-  const logger = new Logger('Main-Gateway');
+  const logger = new Logger('API-Gateway');
   const app = await NestFactory.create(AppModule);
+
+  // Seguridad: Headers HTTP seguros
+  app.use(helmet());
+
+  // Seguridad: CORS configurado
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN || '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
   app.setGlobalPrefix('api');
 

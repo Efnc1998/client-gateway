@@ -11,12 +11,22 @@ import {
   Patch,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateProductDto } from './dto/create-product.dto';
+import { RetryInterceptor } from '@/shared/interceptors/retry.interceptor';
+import { TimeoutInterceptor } from '@/shared/interceptors/timeout.interceptor';
+import { BulkheadInterceptor } from '@/shared/interceptors/bulkhead.interceptor';
+
 @Controller('products')
+@UseInterceptors(
+  new BulkheadInterceptor(15, 30),
+  new RetryInterceptor(3, 1000),
+  new TimeoutInterceptor(10000),
+)
 export class ProductsController {
   constructor(
     @Inject(PRODUCT_SERVICE) private readonly productsClient: ClientProxy,

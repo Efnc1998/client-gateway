@@ -3,15 +3,13 @@ import * as joi from 'joi';
 
 interface EnvVars {
   PORT: number;
-  PRODUCT_MICROSERVICE_HOST: string;
-  PRODUCT_MICROSERVICE_PORT: number;
+  KAFKA_BROKERS: string;
 }
 
 const envVarsSchema = joi
   .object<EnvVars>({
     PORT: joi.number().required(),
-    PRODUCT_MICROSERVICE_HOST: joi.string().required(),
-    PRODUCT_MICROSERVICE_PORT: joi.number().required(),
+    KAFKA_BROKERS: joi.string().required(),
   })
   .unknown(true);
 
@@ -22,8 +20,6 @@ if (error) throw new Error(`Config validation error: ${error.message}`);
 const envVars: EnvVars = value;
 
 export const envs = {
-  /** The port number the microservice will listen on */
   port: envVars.PORT,
-  productMicroserviceHost: envVars.PRODUCT_MICROSERVICE_HOST,
-  productMicroservicePort: envVars.PRODUCT_MICROSERVICE_PORT,
+  kafkaBrokers: envVars.KAFKA_BROKERS.split(','),
 };
