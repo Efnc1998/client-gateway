@@ -5,22 +5,30 @@ import {
   Inject,
   Param,
   ParseUUIDPipe,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RetryInterceptor } from '@/shared/interceptors/retry.interceptor';
 import { TimeoutInterceptor } from '@/shared/interceptors/timeout.interceptor';
+import { KafkaClientBase } from '@/shared/kafka-client.base';
 
 @Controller('payments')
-@UseGuards(JwtAuthGuard)
 @UseInterceptors(new RetryInterceptor(3, 1000), new TimeoutInterceptor(10000))
-export class PaymentsController {
+export class PaymentsController extends KafkaClientBase {
   constructor(
-    @Inject(PAYMENT_SERVICE) private readonly paymentsClient: ClientProxy,
-  ) {}
+    @Inject(PAYMENT_SERVICE) private readonly paymentsClient: ClientKafka,
+  ) {
+    super();
+  }
+
+  getKafkaClient() {
+    return this.paymentsClient;
+  }
+
+  getTopics() {
+    return ['find_one_payment', 'find_payments_by_order'];
+  }
 
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {

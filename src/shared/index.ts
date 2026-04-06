@@ -1,5 +1,7 @@
 export * from './dto';
 export * from './interfaces';
+export * from './kafka-client.base';
+export * from './interceptors/response.interceptor';
 export * from './interceptors/retry.interceptor';
 export * from './interceptors/fallback.interceptor';
 export * from './interceptors/bulkhead.interceptor';

@@ -13,13 +13,15 @@ import {
   Query,
   UseInterceptors,
 } from '@nestjs/common';
-import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
 import { catchError } from 'rxjs';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { RetryInterceptor } from '@/shared/interceptors/retry.interceptor';
 import { TimeoutInterceptor } from '@/shared/interceptors/timeout.interceptor';
 import { BulkheadInterceptor } from '@/shared/interceptors/bulkhead.interceptor';
+import { KafkaClientBase } from '@/shared/kafka-client.base';
+import { Public } from '@/shared/decorators/public.decorator';
 
 @Controller('products')
 @UseInterceptors(
@@ -27,30 +29,42 @@ import { BulkheadInterceptor } from '@/shared/interceptors/bulkhead.interceptor'
   new RetryInterceptor(3, 1000),
   new TimeoutInterceptor(10000),
 )
-export class ProductsController {
+export class ProductsController extends KafkaClientBase {
   constructor(
-    @Inject(PRODUCT_SERVICE) private readonly productsClient: ClientProxy,
-  ) {}
+    @Inject(PRODUCT_SERVICE) private readonly productsClient: ClientKafka,
+  ) {
+    super();
+  }
+
+  getKafkaClient() {
+    return this.productsClient;
+  }
+
+  getTopics() {
+    return [
+      'create_product',
+      'find_all_products',
+      'find_one_product',
+      'delete_product',
+      'update_product',
+    ];
+  }
 
   @Post()
   createProduct(@Body() createProductDto: CreateProductDto) {
-    return this.productsClient.send(
-      { cmd: 'create_product' },
-      createProductDto,
-    );
+    return this.productsClient.send('create_product', createProductDto);
   }
 
+  @Public()
   @Get()
   findAllProducts(@Query() paginationDto: PaginationDto) {
-    return this.productsClient.send(
-      { cmd: 'find_all_products' },
-      paginationDto,
-    );
+    return this.productsClient.send('find_all_products', paginationDto);
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.productsClient.send({ cmd: 'find_one_product' }, { id }).pipe(
+    return this.productsClient.send('find_one_product', { id }).pipe(
       catchError((err) => {
         throw new RpcException(err);
       }),
@@ -59,7 +73,7 @@ export class ProductsController {
 
   @Delete(':id')
   deleteProduct(@Param('id') id: string) {
-    return this.productsClient.send({ cmd: 'delete_product' }, { id }).pipe(
+    return this.productsClient.send('delete_product', { id }).pipe(
       catchError((err) => {
         throw new RpcException(err);
       }),
@@ -72,13 +86,7 @@ export class ProductsController {
     @Body() updateProductDto: UpdateProductDto,
   ) {
     return this.productsClient
-      .send(
-        { cmd: 'update_product' },
-        {
-          id,
-          ...updateProductDto,
-        },
-      )
+      .send('update_product', { id, ...updateProductDto })
       .pipe(
         catchError((err) => {
           throw new RpcException(err);

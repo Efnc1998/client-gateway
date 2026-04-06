@@ -1,4 +1,6 @@
-import { IsEnum, IsUUID } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
 
 export enum OrderStatus {
   PENDING = 'PENDING',
@@ -9,9 +11,14 @@ export enum OrderStatus {
 }
 
 export class ChangeOrderStatusDto {
+  @ApiProperty({ example: 'uuid-here' })
   @IsUUID()
+  @IsNotEmpty()
+  @Type(() => String)
   id: string;
 
+  @ApiProperty({ enum: OrderStatus, example: OrderStatus.CONFIRMED })
   @IsEnum(OrderStatus)
+  @IsNotEmpty()
   status: OrderStatus;
 }

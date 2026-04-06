@@ -1,8 +1,6 @@
+import { PaginationMeta } from './pagination-meta.interface';
+
 export interface PaginatedResponse<T> {
   data: T[];
-  meta: {
-    totalItems: number;
-    currentPage: number;
-    lastPage: number;
-  };
+  meta: PaginationMeta;
 }

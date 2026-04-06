@@ -10,32 +10,55 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
+  Request,
   UseInterceptors,
 } from '@nestjs/common';
-import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { ClientKafka, RpcException } from '@nestjs/microservices';
+import { Request as ExpressRequest } from 'express';
 import { catchError } from 'rxjs';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ChangeOrderStatusDto } from './dto/change-order-status.dto';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RetryInterceptor } from '@/shared/interceptors/retry.interceptor';
 import { TimeoutInterceptor } from '@/shared/interceptors/timeout.interceptor';
+import { KafkaClientBase } from '@/shared/kafka-client.base';
 
 @Controller('orders')
-@UseGuards(JwtAuthGuard)
 @UseInterceptors(new RetryInterceptor(3, 1000), new TimeoutInterceptor(15000))
-export class OrdersController {
+export class OrdersController extends KafkaClientBase {
   constructor(
-    @Inject(ORDER_SERVICE) private readonly ordersClient: ClientProxy,
-  ) {}
+    @Inject(ORDER_SERVICE) private readonly ordersClient: ClientKafka,
+  ) {
+    super();
+  }
+
+  getKafkaClient() {
+    return this.ordersClient;
+  }
+
+  getTopics() {
+    return [
+      'create_order',
+      'find_all_orders',
+      'find_one_order',
+      'change_order_status',
+    ];
+  }
 
   @Post()
-  createOrder(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersClient.send('create_order', createOrderDto).pipe(
-      catchError((err) => {
-        throw new RpcException(err);
-      }),
-    );
+  createOrder(
+    @Body() createOrderDto: CreateOrderDto,
+    @Request() req: ExpressRequest & { user: { user: { id: string } } },
+  ) {
+    // Extrae el userId del JWT validado por JwtAuthGuard e inyéctalo en el payload
+    // El usuario no puede manipular su propio userId — viene del token firmado
+    const userId = req.user.user.id;
+    return this.ordersClient
+      .send('create_order', { ...createOrderDto, userId })
+      .pipe(
+        catchError((err) => {
+          throw new RpcException(err);
+        }),
+      );
   }
 
   @Get()
